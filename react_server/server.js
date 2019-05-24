@@ -1,7 +1,19 @@
 const express = require('express')
 const cors = require('cors')
-
 const app = express()
+const sqlite3 = require('sqlite3').verbose();
+const bodyParser = require("body-parser");
+app.use(bodyParser.urlencoded({ extended: true }));
+app.use(bodyParser.json());
+
+
+let db = new sqlite3.Database('./data.db', (err) => {
+	if (err) {
+	  console.error(err.message);
+	}
+	console.log('Connected to data.db');
+  });
+
 
 const posts = [
 	{
@@ -17,9 +29,47 @@ const posts = [
 
 app.use(cors())
 
+app.post('/get-catalog', (request, response) => {
+	
+	var catalog = [];
+	const term =  request.body.term;
+	const school = request.body.school;
+	const department = request.body.department;
+	const course = request.body.course;
+
+	let sql = "SELECT * FROM catalog c WHERE TERM = '" + term 
+	+ "' AND SCHOOL = '" + school 
+	+ "' AND DEPARTMENT = '" + department 
+	+ "' AND COURSE = '" + course 
+	+ "' AND c.PRICE in (select min(PRICE) from catalog)";
+	console.log(sql)
+
+
+	db.all(sql, [], (err, rows) => {
+
+
+		if (err) {
+		  return console.error(err.message);
+		}
+		
+		rows.forEach((row) => {
+
+			catalog.push(row)
+		})
+		console.log(catalog)
+
+		response.send(catalog)
+
+	})
+
+})
+
+
+
 app.get('/posts', (request, response) => {
 	response.json(posts)
 })
+
 
 // app.get('/add-post', (request, response) => {
 	
@@ -29,8 +79,6 @@ app.get('/posts', (request, response) => {
 // 		date: 'just now'
 // 	})
 // })
-
-app.set('view engine', 'pug')
 
 
 app.get('/add-post', function (request, response) {
@@ -54,6 +102,6 @@ app.get('/add-post-process', function (request, response) {
 
 })
 
-app.listen(7777, () => {
-	console.log('Server listening at http://0.0.0.0:7777')
+app.listen(8080, () => {
+	console.log('Server listening at http://0.0.0.0:8080')
 })
