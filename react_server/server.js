@@ -37,13 +37,20 @@ app.post('/get-catalog', (request, response) => {
 	const department = request.body.department;
 	const course = request.body.course;
 
-	let sql = "SELECT * FROM catalog c WHERE TERM = '" + term 
-	+ "' AND SCHOOL = '" + school 
-	+ "' AND DEPARTMENT = '" + department 
-	+ "' AND COURSE = '" + course 
-	+ "' AND c.PRICE in (select min(PRICE) from catalog)";
-	console.log(sql)
+	let sql = "SELECT ORDERID, TITLE, ISBN10, MIN(a.PRICE) PRICE, (SELECT MIN(b.DATETIME) FROM catalog b "
+	+ "WHERE b.TERM = '" + term
+	+ "' AND b.SCHOOL = '" + school 
+	+ "' AND b.DEPARTMENT = '" + department 
+	+ "' AND b.COURSE = '" + course 
+	+ "' AND b.ISBN10 = a.ISBN10 AND b.PRICE = MIN(a.PRICE)) DATETIME FROM catalog a "
+	+ "WHERE a.TERM = '" + term 
+	+ "' AND a.SCHOOL = '" + school 
+	+ "' AND a.DEPARTMENT = '" + department 
+	+ "' AND a.COURSE = '" + course 
+	+ "' GROUP BY a.SCHOOL,a.DEPARTMENT,a.COURSE,a.ISBN10";
 
+
+	console.log(sql)
 
 	db.all(sql, [], (err, rows) => {
 
@@ -63,6 +70,57 @@ app.post('/get-catalog', (request, response) => {
 	})
 
 })
+
+app.post('/sell-from-isbn', (request, response) => {
+	
+	const term =  request.body.term;
+	const school = request.body.school;
+	const department = request.body.department;
+	const course = request.body.course;
+
+	let sql = "SELECT ORDERID, TITLE, ISBN10, SELLEREMAIL, MIN(c.PRICE) PRICE, MIN(c.DATETIME) DATETIME FROM catalog c WHERE TERM = '" + term 
+	+ "' AND SCHOOL = '" + school 
+	+ "' AND DEPARTMENT = '" + department 
+	+ "' AND COURSE = '" + course 
+	+ "' GROUP BY c.SCHOOL,c.DEPARTMENT,c.COURSE,c.ISBN10";
+
+
+
+
+	// let sql = "SELECT ORDERID, TITLE, MIN(a.PRICE) PRICE, "
+	// +"SUBSTRING (CAST ((SELECT MIN(CAST(b.DATETIME as DATETIME)) DATETIME FROM catalog b"
+	// console.log(sql)
+
+	// if(){
+
+	// }
+	// else{
+
+	// }
+
+})
+
+
+app.post('/sell-from-listing', (request, response) => {
+	
+	const orderid = request.body.orderid;
+
+
+
+
+	// let sql = "SELECT ORDERID, TITLE, MIN(a.PRICE) PRICE, "
+	// +"SUBSTRING (CAST ((SELECT MIN(CAST(b.DATETIME as DATETIME)) DATETIME FROM catalog b"
+	// console.log(sql)
+
+	// if(){
+
+	// }
+	// else{
+
+	// }
+
+})
+
 
 
 
