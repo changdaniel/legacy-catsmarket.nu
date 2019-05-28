@@ -3,7 +3,9 @@ import SelectBox from './components/SelectBox'
 import SelectBoxCourses from './components/SelectBoxCourses'
 import BuyCatalogLine from './components/BuyCatalogLine'
 import SellCatalogLine from './components/SellCatalogLine'
-import ConfirmBuy from './components/ConfirmBuy'
+import Confirm from './components/Confirm'
+import SellByISBN from './components/SellByISBN'
+
 
 var coursedata = require('../../python-data/Fall2019_PrunedCoursesDataV2.json');
 
@@ -36,13 +38,26 @@ class App extends React.Component {
 			submittedisbn10:"",
 			submittedprice:"",
 
+			buymessages:{
+				purpose:"Purchase",
+				pricegrammar: "For: "
+			},
+			sellmessages:{
+				purpose:"Listing",
+				pricegrammar: "At: "
+			},
 			selectedemail:"",
 			isemailvalid: false,
 
 			submittedemail:"",
 
+			selectedisbn10:"",
+			isisbnvalid: false,
+
 			catalog: null,
 			selectedid: null,
+
+			responsemessage:""
 			
 
 		}
@@ -54,8 +69,13 @@ class App extends React.Component {
 
 		this.handleBuy = this.handleBuy.bind(this);
 		this.handleSell = this.handleSell.bind(this);
+		this.handleISBNSubmit = this.handleISBNSubmit.bind(this);
 
 		this.handleEmailChange = this.handleEmailChange.bind(this);
+		this.handleISBNChange = this.handleISBNChange.bind(this);
+
+		this.handleBuySubmit = this.handleBuySubmit.bind(this);
+		this.handleSellSubmit = this.handleSellSubmit.bind(this);
 
 		this.renderSearch = this.renderSearch.bind(this);
 		this.renderBuyCatalogList = this.renderBuyCatalogList.bind(this);
@@ -114,11 +134,113 @@ class App extends React.Component {
 		})
 	}
 
+	handleISBNChange(event){
+
+		this.setState({
+			selectedisbn10: event.target.value,
+			isisbnvalid: validateISBN(event.target.value),
+			isbnerrormessage: 
+				validateISBN(event.target.value) ? null : 'Invalid ISBN10 or ISBN13 (10 or 13 characters)'
+		})
+
+	}
+
+	handleISBNSubmit(){
+
+		if(this.state.selectedisbn10.length == 13){
+
+			this.setState({
+				submittedisbn10: convertISBN13ToISBN10(this.state.selectedisbn10),
+				submittedorderid:"",
+				submittedprice:"",
+				submittedtitle:"",
+			})
+			
+		}
+		else
+		{
+			this.setState({
+				submittedisbn10: this.state.selectedisbn10,
+				submittedorderid:"",
+				submittedprice:"",
+				submittedtitle:"",
+				
+			})
+
+		}
+		
+	}
+
 	handleBuySubmit(){
+
+		this.setState({
+			submittedemail:this.state.selectedemail
+		}, () => {
+
+			fetch('http://localhost:8080/buy', {
+			method: "POST",
+			headers: {
+				'Content-Type': 'application/json',
+			},
+			body: JSON.stringify(
+				{
+				price: this.state.submittedprice,
+				isbn10: this.state.submittedisbn10,
+				title: this.state.submittedtitle,
+				buyeremail: this.state.submittedemail
+			})
+		}).then((response) => {
+				return response.json()
+			}).then((data) => {
+				this.setState({
+					responsemessage: data
+				})
+				
+			})
+
+		});
+
+		
+	}
+
+	handleSellSubmit(){
+
 		this.setState({
 			submittedemail: this.state.selectedemail
+		}, () => {
+
+			fetch('http://localhost:8080/sell', {
+			method: "POST",
+			headers: {
+				'Content-Type': 'application/json',
+			},
+			body: JSON.stringify(
+				{
+				price: this.state.submittedprice,
+				isbn10: this.state.submittedisbn10,
+				title: this.state.submittedtitle,
+				selleremail: this.state.submittedemail,
+
+				term:this.state.selectedterm,
+				school: this.state.selectedschool,
+				department: this.state.selecteddepartment, 
+				course: this.state.selectedcourse
+
+			})
+		}).then((response) => {
+				return response.json()
+			}).then((data) => {
+				this.setState({
+					responsemessage: data
+				})
+				
+			})
+		
 		})
+
+		
 	}
+	
 
 	handleSearchSubmit(){
 
@@ -161,7 +283,7 @@ class App extends React.Component {
 	}
 
 	renderBuyCatalogList(){
-
+		
 		const buyCatalogList = this.state.catalog.map((item) =>
 			<BuyCatalogLine 
 				key = {item.ORDERID} 
@@ -329,12 +451,13 @@ class App extends React.Component {
 				<div>
 				{search}
 				<hr style={{border: "2px solid purple"}}></hr>
-				<ConfirmBuy
+				<Confirm
+					messages = {this.state.buymessages}
 					title = {this.state.submittedtitle}
 					isbn10 = {this.state.submittedisbn10}
 					price = {this.state.submittedprice}
 					handleEmailChange = {this.handleEmailChange}
-					handleBuySubmit = {this.handleBuySubmit}
+					handleBuySellSubmit = {this.handleBuySubmit}
 					isemailvalid = {this.state.isemailvalid}
 					emailerrormessage = {this.state.emailerrormessage}
 				/>
@@ -342,15 +465,25 @@ class App extends React.Component {
 			)
 
 		}
-		if(this.state.submittedtitle != "" && this.state.submittedisbn10 != "" && this.state.submittedtprice != "" && this.state.submittedpurpose == "Sell"){
-			
-			const sellCatalogList = this.renderSellCatalogList();
-
+		else if(
+			//this.state.submittedtitle != "" && 
+			this.state.submittedisbn10 != "" 
+			//&& this.state.submittedtprice != "" 
+			&& this.state.submittedpurpose == "Sell"){
 			return(
 				<div>
 				{search}
-				<br></br>
-				{sellCatalogList}
+				<hr style={{border: "2px solid purple"}}></hr>
+				<Confirm
+					messages = {this.state.sellmessages}
+					title = {this.state.submittedtitle}
+					isbn10 = {this.state.submittedisbn10}
+					price = {this.state.submittedprice}
+					handleEmailChange = {this.handleEmailChange}
+					handleBuySellSubmit = {this.handleSellSubmit}
+					isemailvalid = {this.state.isemailvalid}
+					emailerrormessage = {this.state.emailerrormessage}
+				/>
 				</div>
 			)
 
@@ -367,7 +500,7 @@ class App extends React.Component {
 				</div>
 			)
 		}
-		else if(this.state.catalog != null && this.state.catalog.length != 0 && this.state.submittedpurpose == "Sell"){
+		else if(this.state.catalog != null && this.state.submittedpurpose == "Sell"){
 			
 			const sellCatalogList = this.renderSellCatalogList();
 
@@ -375,12 +508,17 @@ class App extends React.Component {
 				<div>
 				{search}
 				<br></br>
-				{sellCatalogList}	
+				<SellByISBN 
+				isisbnvalid = {this.state.isisbnvalid}
+				isbnerrormessage = {this.state.isbnerrormessage}
+				handleISBNChange = {this.handleISBNChange}
+				handleISBNSubmit = {this.handleISBNSubmit}
+				/>
+				{sellCatalogList}
 				</div>		
 			)
 		}
 		else{
-			
 			
 			return(
 				search
@@ -429,5 +567,65 @@ function validateNorthwesternEmail(email){
 		return false;
 	}
 
+}
+
+function convertISBN13ToISBN10(str) {
+    var s;
+    var c;
+    var checkDigit = 0;
+    var result = "";
+
+    s = str.substring(3,str.length);
+    for (var i = 10; i > 1; i-- ) {
+        c = s.charAt(10 - i);
+        checkDigit += (c - 0) * i;
+        result += c;
+    }
+    checkDigit = (11 - (checkDigit % 11)) % 11;
+    result += checkDigit == 10 ? 'X' : (checkDigit + "");
+
+    return ( result );
+}
+
+function validateISBN(str) {
+
+    var sum,
+        weight,
+        digit,
+        check,
+        i;
+
+    if (str.length != 10 && str.length != 13) {
+        return false;
+    }
+
+    if (str.length == 13) {
+        sum = 0;
+        for (i = 0; i < 12; i++) {
+            digit = parseInt(str[i]);
+            if (i % 2 == 1) {
+                sum += 3*digit;
+            } else {
+                sum += digit;
+            }
+        }
+        check = (10 - (sum % 10)) % 10;
+        return (check == str[str.length-1]);
+    }
+
+    if (str.length == 10) {
+        weight = 10;
+        sum = 0;
+        for (i = 0; i < 9; i++) {
+            digit = parseInt(str[i]);
+            sum += weight*digit;
+            weight--;
+        }
+        check = 11 - (sum % 11);
+        if (check == 10) {
+            check = 'X';
+        }
+        return (check == str[str.length-1].toUpperCase());
+    }
 }
 export default App

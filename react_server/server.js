@@ -1,10 +1,35 @@
 const express = require('express')
 const cors = require('cors')
 const app = express()
-const sqlite3 = require('sqlite3').verbose();
+
 const bodyParser = require("body-parser");
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(bodyParser.json());
+
+const sqlite3 = require('sqlite3').verbose();
+const nodemailer = require('nodemailer');
+
+const nodemaileraccount = require('./nodemaileraccount.json')
+
+
+	// var mailOptions = {
+	// from: 'catsmarkettest@gmail.com',
+	// to: 'danielchang2022@u.northwestern.edu, changdaniel116@gmail.com',
+	// subject: 'Sending Email using Node.js',
+	// html: "<h3> REMEMBER! Stay safe when meeting to exchange this textbook.  Here are some tips: </h3>"
+	// + "<p>1. Meet in a public place with people around, such as Norris, a library, or a coffee shop.  NUPD is a convenient off-campus location as well. </p>"
+	// + "<p>2. Meet during the day.</p>"
+	// + "<p>3. Confirm the price, book quality, and payment method before hand to avoid confusion.</p>"
+	// };
+  
+  // transporter.sendMail(mailOptions, function(error, info){
+	// if (error) {
+	//   console.log(error);
+	// } else {
+	//   console.log('Email sent: ' + info.response);
+	// }
+  // });
+
 
 
 let db = new sqlite3.Database('./data.db', (err) => {
@@ -12,20 +37,17 @@ let db = new sqlite3.Database('./data.db', (err) => {
 	  console.error(err.message);
 	}
 	console.log('Connected to data.db');
+});
+
+let transporter = nodemailer.createTransport({
+	service: 'gmail',
+	auth: {
+	  user: nodemaileraccount.user,
+	  pass: nodemaileraccount.pass
+	}
   });
 
 
-const posts = [
-	{
-		body: 'Hello world',
-		date: '2/17/19'
-	},
-	{
-		body: 'Brutal and Extended Cold Blast could shatter ALL RECORDS - Whatever happened to Global Warming?',
-		date: '2/16/19'
-	},
-
-]
 
 app.use(cors())
 
@@ -49,8 +71,6 @@ app.post('/get-catalog', (request, response) => {
 	+ "' AND a.COURSE = '" + course 
 	+ "' GROUP BY a.SCHOOL,a.DEPARTMENT,a.COURSE,a.ISBN10";
 
-
-	console.log(sql)
 
 	db.all(sql, [], (err, rows) => {
 
@@ -100,33 +120,67 @@ app.post('/sell-from-isbn', (request, response) => {
 
 })
 
+app.post('/sell', (request, response) => {
 
-app.post('/sell-from-listing', (request, response) => {
+	console.log(request)
+
+	const isbn10 = request.body.isbn10;
+	const term =  request.body.term;
+	const school = request.body.school;
+	const department = request.body.department;
+	const course = request.body.course;
+	const price = request.body.price;
+	const title = request.body.title;
+	const selleremail = request.body.selleremail;
 	
-	const orderid = request.body.orderid;
+	if(title == ""){
 
+		
 
+	}
+	else{
+	
+		values = [term, school, department, course, selleremail, price, isbn10, title]
+		db.run(`INSERT INTO catalog(ORDERID, TERM, SCHOOL, DEPARTMENT, COURSE, SELLEREMAIL, PRICE, ISBN10, TITLE, DATETIME) VALUES(NULL, ?, ?, ?, ?, ?, ?, ?, ?, DATETIME("now"));`, values, function (err) {
+				if (err) {
+					return console.log(err.message);
+				}
+				console.log(`A row has been inserted`);
+				return;
+			})
 
+	}
+})
 
-	// let sql = "SELECT ORDERID, TITLE, MIN(a.PRICE) PRICE, "
-	// +"SUBSTRING (CAST ((SELECT MIN(CAST(b.DATETIME as DATETIME)) DATETIME FROM catalog b"
-	// console.log(sql)
+app.post('/buy', (request, response) => {
+	
+		const isbn10 = request.body.isbn10;
+		const price = request.body.price;
+		const title = request.body.title;
+		const buyeremail = request.body.buyeremail;
+		
 
-	// if(){
+		values = [price, isbn10, title]
 
-	// }
-	// else{
+		let sql = "SELECT MIN(a.DATETIME), TITLE, PRICE, ISBN10, SELLEREMAIL from catalog a WHERE price = " + price + " AND ISBN10 = '" + isbn10 + "'";
+		db.get(sql, [], (err, row) => {
 
-	// }
+			if (err) {
+				return console.error(err.message);
+			}
+			else if(row == undefined){
 
+			}
+			else{
+				console.log(row)
+				buyConfirmed(row, buyeremail)
+			}
+		})
+	
 })
 
 
-
-
-app.get('/posts', (request, response) => {
-	response.json(posts)
-})
+	
 
 
 // app.get('/add-post', (request, response) => {
@@ -138,28 +192,33 @@ app.get('/posts', (request, response) => {
 // 	})
 // })
 
+function buyConfirmed(catalogrow, buyeremail){
 
-app.get('/add-post', function (request, response) {
 
-  response.render('add-post-page')
-})
+	console.log(buyeremail)
 
-app.get('/add-post-process', function (request, response) {
+	var mailOptions = {
+	from: 'catsmarkettest@gmail.com',
+	to: buyeremail +"," + catalogrow.SELLEREMAIL,
+	subject: 'For video purposes',
+	text: 
+	"Title is " + catalogrow.TITLE 
+	+ "\n\n and price is $" + (catalogrow.PRICE/100).toFixed(2) 
+	+ "\n\n and ISBN10 is " + catalogrow.ISBN10
+};
+  
+  transporter.sendMail(mailOptions, function(error, info){
+		if(error) {
+			res.send(500);
+	} else {
+			res.send(200);
+	}
 
-  const message = request.query.message
-  var today = new Date();
+});
 
-  const time = (today.getHours() - 12) + ":" + today.getMinutes() + ":" + today.getSeconds()
-
-  posts.push({
-	  body: message,
-	  date: time
-  })
-
-  response.redirect("/posts")
-
-})
+}
 
 app.listen(8080, () => {
 	console.log('Server listening at http://0.0.0.0:8080')
 })
+
