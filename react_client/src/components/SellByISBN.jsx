@@ -11,7 +11,7 @@ function SellByISBN(props){
                             type = "text" 
                             size = "13"/>
         <div className='invalid-feedback'>{props.isbnerrormessage}</div>
-        <button type="submit" onClick = {props.handleISBNSubmit} disabled={!props.isisbnvalid}>List</button>
+        <button class="btn btn-info" type="submit" onClick = {props.handleISBNSubmit} disabled={!props.isisbnvalid}>List</button>
         </div>
     )
 };

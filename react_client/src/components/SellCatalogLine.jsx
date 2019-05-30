@@ -11,8 +11,8 @@ function SellCatalogLine(props){
         <h3>{props.title}</h3>
         <p>Lowest Price: ${(currentprice/100).toFixed(2)}</p>
         <p>ISBN10: {props.isbn10}</p>
-        <button type="submit" onClick = {props.handleSell(props.title, props.isbn10, currentprice)}>List item at ${(currentprice/100).toFixed(2)} </button>
-        <button type="submit" onClick = {props.handleSell(props.title, props.isbn10, cheaperprice)}>List item at ${(cheaperprice/100).toFixed(2)} </button> 
+        <button type="submit" class="btn btn-info" onClick = {props.handleSell(props.title, props.isbn10, currentprice)}>List item at ${(currentprice/100).toFixed(2)} </button>
+        <button type="submit" class="btn btn-info" onClick = {props.handleSell(props.title, props.isbn10, cheaperprice)}>List item at ${(cheaperprice/100).toFixed(2)} </button> 
         </div>
     )
 };

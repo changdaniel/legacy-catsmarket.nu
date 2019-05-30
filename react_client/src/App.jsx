@@ -5,6 +5,7 @@ import BuyCatalogLine from './components/BuyCatalogLine'
 import SellCatalogLine from './components/SellCatalogLine'
 import Confirm from './components/Confirm'
 import SellByISBN from './components/SellByISBN'
+import EmptyBuyCatalog from './components/EmptyBuyCatalog'
 
 
 var coursedata = require('../../python-data/Fall2019_PrunedCoursesDataV2.json');
@@ -186,11 +187,11 @@ class App extends React.Component {
 				{
 				price: this.state.submittedprice,
 				isbn10: this.state.submittedisbn10,
-				title: this.state.submittedtitle,
+				title: this.state.submittedtitlew,
 				buyeremail: this.state.submittedemail
 			})
 		}).then((response) => {
-				return response.json()
+				return response.text();
 			}).then((data) => {
 				this.setState({
 					responsemessage: data
@@ -200,7 +201,6 @@ class App extends React.Component {
 
 		});
 
-		
 	}
 
 	handleSellSubmit(){
@@ -228,7 +228,7 @@ class App extends React.Component {
 
 			})
 		}).then((response) => {
-				return response.json()
+				return response.text()
 			}).then((data) => {
 				this.setState({
 					responsemessage: data
@@ -345,7 +345,7 @@ class App extends React.Component {
 					elements = {this.state.purposes}
 					handleChange = {this.handlePurposeChange}
 				/>
-				<button onClick = {this.handleSearchSubmit}>Submit</button>
+				<button class= "btn btn-info" onClick = {this.handleSearchSubmit}>Submit</button>
 				</div>
 			)
 		}
@@ -445,9 +445,15 @@ class App extends React.Component {
 		
 		const search = this.renderSearch()
 
-		if(this.state.submittedtitle != "" && this.state.submittedisbn10 != "" && this.state.submittedtprice != "" && this.state.submittedpurpose == "Buy"){
+		if(this.state.responsemessage!= ""){
+			return(
+				<h1>{this.state.responsemessage}</h1>
+			)
+		}
+		else if(this.state.submittedtitle != "" && this.state.submittedisbn10 != "" && this.state.submittedtprice != "" && this.state.submittedpurpose == "Buy"){
 			
 			return(
+				
 				<div>
 				{search}
 				<hr style={{border: "2px solid purple"}}></hr>
@@ -488,12 +494,15 @@ class App extends React.Component {
 			)
 
 		}
-		else if(this.state.catalog != null && this.state.catalog.length != 0 && this.state.submittedpurpose == "Buy"){
+		else if(this.state.catalog != null && this.state.submittedpurpose == "Buy"){
 			
 			const buyCatalogList = this.renderBuyCatalogList();
 
 			return(
+				
 				<div>
+				<EmptyBuyCatalog
+					catalog_length = {this.state.catalog.length}/>
 				{search}
 				<br></br>
 				{buyCatalogList}

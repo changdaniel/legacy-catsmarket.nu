@@ -9,10 +9,14 @@ function Confirm(props){
     if(title == ""){
         title = "Listed via ISBN"
     }
+
     if(price == ""){
         price = "(80% of internet list price)"
     }
-
+    else
+    {
+        price = (price/100).toFixed(2)
+    }
 
     return (
         <div>
@@ -27,7 +31,8 @@ function Confirm(props){
                             name="email" 
                             size = "35"/>
         <div className='invalid-feedback'>{props.emailerrormessage}</div>
-        <button type="submit" onClick = {props.handleBuySellSubmit} disabled={!props.isemailvalid}>Confirm {props.messages.purpose}</button>
+        <br></br>
+        <button type="submit" class="btn btn-danger" onClick = {props.handleBuySellSubmit} disabled={!props.isemailvalid}>Confirm {props.messages.purpose}</button>
         </div>
     )
 };
