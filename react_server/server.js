@@ -98,25 +98,44 @@ app.post('/sell-from-isbn', (request, response) => {
 	const department = request.body.department;
 	const course = request.body.course;
 
-	let sql = "SELECT ORDERID, TITLE, ISBN10, SELLEREMAIL, MIN(c.PRICE) PRICE, MIN(c.DATETIME) DATETIME FROM catalog c WHERE TERM = '" + term 
-	+ "' AND SCHOOL = '" + school 
-	+ "' AND DEPARTMENT = '" + department 
-	+ "' AND COURSE = '" + course 
-	+ "' GROUP BY c.SCHOOL,c.DEPARTMENT,c.COURSE,c.ISBN10";
+	// let sql = "SELECT ORDERID, TITLE, ISBN10, SELLEREMAIL, MIN(c.PRICE) PRICE, MIN(c.DATETIME) DATETIME FROM catalog c WHERE TERM = '" + term 
+	// + "' AND SCHOOL = '" + school 
+	// + "' AND DEPARTMENT = '" + department 
+	// + "' AND COURSE = '" + course 
+	// + "' GROUP BY c.SCHOOL,c.DEPARTMENT,c.COURSE,c.ISBN10";
+
+
+	let sql = "SELECT MIN(a.price) PRICE, TITLE, ISBN10, TERM, SCHOOl, DEPARTMENT, COURSE FROM catalog a WHERE ISBN10 = '" + isbn10 + "'";
+
+	db.get(sql, [], (err, row) => {
+
+		if (err) {
+			return console.error(err.message);
+		}
+		else if(row == undefined){
+
+			db.run(`INSERT INTO catalog(ORDERID, TERM, SCHOOL, DEPARTMENT, COURSE, SELLEREMAIL, PRICE, ISBN10, TITLE, DATETIME) VALUES(NULL, ?, ?, ?, ?, ?, ?, ?, ?, DATETIME("now"));`, values, function (err) {
+				if (err) {
+					return console.log(err.message);
+				}
+				console.log(`A row has been inserted`);
+				return;
+		})
 
 
 
+		}
+		else
+		{
 
-	// let sql = "SELECT ORDERID, TITLE, MIN(a.PRICE) PRICE, "
-	// +"SUBSTRING (CAST ((SELECT MIN(CAST(b.DATETIME as DATETIME)) DATETIME FROM catalog b"
-	// console.log(sql)
+		}
 
-	// if(){
 
-	// }
-	// else{
+		
+	})
 
-	// }
+
+
 
 })
 
@@ -147,7 +166,7 @@ app.post('/sell', (request, response) => {
 				}
 				console.log(`A row has been inserted`);
 				return;
-			})
+		})
 
 	}
 })
@@ -201,10 +220,14 @@ function buyConfirmed(catalogrow, buyeremail){
 	from: 'catsmarkettest@gmail.com',
 	to: buyeremail +"," + catalogrow.SELLEREMAIL,
 	subject: 'For video purposes',
-	text: 
-	"Title is " + catalogrow.TITLE 
-	+ "\n\n and price is $" + (catalogrow.PRICE/100).toFixed(2) 
-	+ "\n\n and ISBN10 is " + catalogrow.ISBN10
+	html: "<h3> REMEMBER! Stay safe when meeting to exchange this textbook.  Here are some tips: </h3>"
+	+ "<p>1. Meet in a public place with people around, such as Norris, a library, or a coffee shop.  NUPD is a convenient off-campus location as well. </p>"
+	+ "<p>2. Meet during the day.</p>"
+	+ "<p>3. Confirm the price, book quality, and payment method before hand to avoid confusion.</p>"
+	+ "<h3>" + "Title: " + catalogrow.TITLE + "</h3>"
+	+ "<h3>" + "ISBN10: " + catalogrow.ISBN10 + "</h3>"
+	+ "<h3>" + "Guideline Price: $" + (catalogrow.PRICE/100).toFixed(2)  + "</h3>"
+
 };
   
   transporter.sendMail(mailOptions, function(error, info){
